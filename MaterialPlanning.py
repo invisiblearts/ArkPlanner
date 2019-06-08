@@ -174,7 +174,55 @@ class MaterialPlanning(object):
         strategy = (n_looting, n_convertion)
         
         return strategy, fun, status_dct[status]
-    
+
+
+    def get_plan_dct(self, requirement_dct, deposited_dct={}, prioty_dct=None):
+        """
+        API for web server. Returns dictionary format of material plan.
+        Args:
+                requirement_dct: dictionary. Contain only required items with their numbers.
+                deposit_dct: dictionary. Contain only owned items with their numbers.
+        """
+        demand_lst = np.zeros(len(self.item_array))+1e-8
+        for k, v in requirement_dct.items():
+            demand_lst[self.item_dct_rv[k]] = v
+        for k, v in deposited_dct.items():
+            demand_lst[self.item_dct_rv[k]] -= v
+        (n_looting, n_convertion), cost, status = self._get_plan_no_prioties(demand_lst)
+
+        stages = []
+        for i,t in enumerate(n_looting):
+            if t >= 0.5:
+                target_items = np.where(self.probs_matrix[i]*t>=0.1)[0]
+                items = {self.item_array[idx]: float2str(self.probs_matrix[i, idx]*int(t+0.5))
+                for idx in target_items if len(self.item_id_array[idx])==5 }
+                stage = {
+                    "stage": self.stage_array[i],
+                    "count": float2str(t),
+                    "items": items
+                }
+                stages.append(stage)
+
+        syntheses = []
+        for i,t in enumerate(n_convertion):
+            if t >= 0.5:
+                target_item = self.item_array[np.argmax(self.convertion_matrix[i])]
+                materials = { k: v*int(t+0.5) for k,v in self.convertions_dct[target_item].items() }
+                synthesis = {
+                    "target": target_item,
+                    "count": int(t+0.5),
+                    "materials": materials
+                }
+                syntheses.append(synthesis)
+
+        res = {
+            "cost": int(cost),
+            "stages": stages,
+            "syntheses": syntheses
+        }
+
+        return res
+
     
     def get_plan(self, requirement_dct, deposited_dct={}, prioty_dct=None):
         """
