@@ -394,12 +394,16 @@ def request_data(url_stats, url_rules, save_path_stats, save_path_rules):
     except:
         pass
     
-    with urllib.request.urlopen(url_stats) as url:
+    stats_req = urllib.request.Request(url_stats, headers={'User-Agent': 'ArkPlanner'})
+    rules_req = urllib.request.Request(url_rules, headers={'User-Agent': 'ArkPlanner'})
+
+
+    with urllib.request.urlopen(stats_req) as url:
         material_probs = json.loads(url.read().decode())
         with open(save_path_stats, 'w') as outfile:
             json.dump(material_probs, outfile)
 
-    with urllib.request.urlopen(url_rules) as url:
+    with urllib.request.urlopen(rules_req) as url:
         convertion_rules = json.loads(url.read().decode())
         with open(save_path_rules, 'w') as outfile:
             json.dump(convertion_rules, outfile)
